@@ -174,13 +174,15 @@ describe('KYC Document Upload', () => {
 });
 
 describe('File Validation', () => {
+  const actualS3Upload = jest.requireActual('../../services/s3Upload') as typeof import('../../services/s3Upload');
+
   it('should validate PDF files', () => {
     const file = {
       mimetype: 'application/pdf',
       size: 1024 * 1024, // 1MB
     } as Express.Multer.File;
 
-    const result = s3Upload.validateFile(file);
+    const result = actualS3Upload.validateFile(file);
     expect(result.valid).toBe(true);
   });
 
@@ -190,7 +192,7 @@ describe('File Validation', () => {
       size: 1024 * 1024,
     } as Express.Multer.File;
 
-    const result = s3Upload.validateFile(file);
+    const result = actualS3Upload.validateFile(file);
     expect(result.valid).toBe(true);
   });
 
@@ -200,7 +202,7 @@ describe('File Validation', () => {
       size: 1024 * 1024,
     } as Express.Multer.File;
 
-    const result = s3Upload.validateFile(file);
+    const result = actualS3Upload.validateFile(file);
     expect(result.valid).toBe(true);
   });
 
@@ -211,7 +213,7 @@ describe('File Validation', () => {
       size: 1024,
     } as Express.Multer.File;
 
-    const result = s3Upload.validateFile(file);
+    const result = actualS3Upload.validateFile(file);
     expect(result.valid).toBe(false);
     expect(result.error).toContain('Invalid file type');
   });
@@ -223,7 +225,7 @@ describe('File Validation', () => {
       size: 6 * 1024 * 1024, // 6MB
     } as Express.Multer.File;
 
-    const result = s3Upload.validateFile(file);
+    const result = actualS3Upload.validateFile(file);
     expect(result.valid).toBe(false);
     expect(result.error).toContain('exceeds maximum limit');
   });

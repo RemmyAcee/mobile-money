@@ -50,6 +50,7 @@ import { metricsMiddleware } from "./middleware/metrics";
 import { validateStellarNetwork, logStellarNetwork } from "./config/stellar";
 import { sessionAnomalyLogger } from "./services/logger";
 import { HealthCheckResponse, ReadinessCheckResponse } from "./types/api";
+import sep24Router from "./stellar/sep24";
 import sep31Router from "./stellar/sep31";
 
 dotenv.config();

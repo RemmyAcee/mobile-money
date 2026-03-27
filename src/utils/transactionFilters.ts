@@ -36,7 +36,7 @@ export interface TransactionFilters {
  */
 export const parseStatusFilter = (statusParam: string | undefined): TransactionStatus[] => {
   if (!statusParam) {
-    return [];
+    return VALID_STATUSES;
   }
 
   const statuses = statusParam
@@ -45,7 +45,7 @@ export const parseStatusFilter = (statusParam: string | undefined): TransactionS
     .filter((s) => s.length > 0 && !/^[-]+$/.test(s));
 
   if (statuses.length === 0) {
-    return [];
+    return VALID_STATUSES;
   }
 
   // Validate all statuses

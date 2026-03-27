@@ -42,7 +42,7 @@ export const apiVersionMiddleware: RequestHandler = (req, res, next) => {
 
     // 2. Check Accept header (e.g., Accept: application/vnd.api+json;version=v1)
     const acceptHeader = versionedReq.get("accept");
-    if (acceptHeader && acceptHeader.includes("version=")) {
+    if (!pathMatch && acceptHeader && acceptHeader.includes("version=")) {
       const versionMatch = acceptHeader.match(/version=(v\d+)/);
       if (versionMatch) {
         version = versionMatch[1];

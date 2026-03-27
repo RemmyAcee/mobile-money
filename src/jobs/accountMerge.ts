@@ -50,7 +50,11 @@ export function resolveMergeDestinationPublicKey(
 
   if (!issuerSecret?.trim()) return null;
 
-  return StellarSdk.Keypair.fromSecret(issuerSecret.trim()).publicKey();
+  try {
+    return StellarSdk.Keypair.fromSecret(issuerSecret.trim()).publicKey();
+  } catch {
+    return null;
+  }
 }
 
 export function xlmToStroops(amount: string): bigint {

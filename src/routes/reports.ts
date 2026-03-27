@@ -48,6 +48,9 @@ import { feeService } from "../services/feeService";
 const calculateFee = async (amount: number): Promise<number> => {
   try {
     const result = await feeService.calculateFee(amount);
+    if (!result || typeof result.fee !== "number" || !Number.isFinite(result.fee)) {
+      throw new Error("Dynamic fee service returned an invalid fee");
+    }
     return result.fee;
   } catch (error) {
     console.warn("Failed to calculate dynamic fee, using fallback 2%:", error);

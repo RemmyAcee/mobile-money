@@ -72,6 +72,30 @@ const VAULT_TRANSACTION_SELECT_COLUMNS = `
   created_at AS "createdAt"
 `;
 
+function formatAmount(value: string | null | undefined): string | undefined {
+  if (value == null) return undefined;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return value;
+  if (parsed === 0) return "0";
+  return parsed.toFixed(2);
+}
+
+function mapVaultRow(row: any): Vault {
+  return {
+    ...row,
+    balance: formatAmount(row.balance) ?? "0",
+    targetAmount: formatAmount(row.targetAmount),
+  };
+}
+
+function mapVaultTransactionRow(row: any): VaultTransaction {
+  return {
+    ...row,
+    amount: formatAmount(row.amount) ?? "0",
+  };
+}
+
 export class VaultModel {
   async create(data: CreateVaultInput): Promise<Vault> {
     // Validate name length and format
@@ -97,7 +121,7 @@ export class VaultModel {
       ],
     );
 
-    return result.rows[0];
+    return mapVaultRow(result.rows[0]);
   }
 
   async findById(id: string): Promise<Vault | null> {
@@ -108,7 +132,7 @@ export class VaultModel {
       [id],
     );
 
-    return result.rows[0] || null;
+    return result.rows[0] ? mapVaultRow(result.rows[0]) : null;
   }
 
   async findByUserId(userId: string, activeOnly = true): Promise<Vault[]> {
@@ -122,7 +146,7 @@ export class VaultModel {
     query += " ORDER BY created_at ASC";
 
     const result = await pool.query(query, params);
-    return result.rows;
+    return result.rows.map(mapVaultRow);
   }
 
   async findByUserAndName(userId: string, name: string): Promise<Vault | null> {
@@ -133,7 +157,7 @@ export class VaultModel {
       [userId, name.trim()],
     );
 
-    return result.rows[0] || null;
+    return result.rows[0] ? mapVaultRow(result.rows[0]) : null;
   }
 
   async updateBalance(
@@ -201,7 +225,7 @@ export class VaultModel {
       values,
     );
 
-    return result.rows[0] || null;
+    return result.rows[0] ? mapVaultRow(result.rows[0]) : null;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -235,7 +259,7 @@ export class VaultModel {
       ],
     );
 
-    return result.rows[0];
+    return mapVaultTransactionRow(result.rows[0]);
   }
 
   async getVaultTransactions(
@@ -255,7 +279,7 @@ export class VaultModel {
       [vaultId, capped, off],
     );
 
-    return result.rows;
+    return result.rows.map(mapVaultTransactionRow);
   }
 
   async getUserBalanceSummary(userId: string): Promise<UserBalanceSummary> {
@@ -270,8 +294,7 @@ export class VaultModel {
        ), 0)::text AS balance
        FROM transactions
        WHERE user_id = $1 
-         AND status = 'completed'
-         AND vault_id IS NULL`,
+         AND status = 'completed'`,
       [userId],
     );
 
@@ -289,7 +312,7 @@ export class VaultModel {
     const vaultBalances = vaultBalancesResult.rows.map((row) => ({
       vaultId: row.id,
       vaultName: row.name,
-      balance: row.balance,
+      balance: formatAmount(row.balance) ?? "0",
     }));
 
     // Calculate total balance
@@ -330,7 +353,7 @@ export class VaultModel {
         throw new Error("Vault not found");
       }
 
-      const vault = vaultResult.rows[0];
+      const vault = mapVaultRow(vaultResult.rows[0]);
       if (!vault.isActive) {
         throw new Error("Cannot transfer to inactive vault");
       }
@@ -355,8 +378,7 @@ export class VaultModel {
            ), 0) AS balance
            FROM transactions
            WHERE user_id = $1 
-             AND status = 'completed'
-             AND vault_id IS NULL`,
+             AND status = 'completed'`,
           [userId],
         );
 
@@ -387,17 +409,14 @@ export class VaultModel {
       );
 
       // Create corresponding main transaction
-      const { TransactionModel } = await import("./transaction");
-      const transactionModel = new TransactionModel();
-      
       // Note: This creates a record of the vault transfer in the main transactions table
-      // The actual balance calculation will account for this when vault_id is set
+      // so main-balance summaries reflect movements into and out of vaults.
       await client.query(
         `INSERT INTO transactions (
           reference_number, type, amount, phone_number, provider, 
-          stellar_address, status, user_id, vault_id, notes
+          stellar_address, status, user_id, vault_id
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+          $1, $2, $3, $4, $5, $6, $7, $8, $9
         )`,
         [
           `VAULT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -409,7 +428,6 @@ export class VaultModel {
           "completed",
           userId,
           vaultId,
-          `Vault ${type}: ${vault.name}${description ? ` - ${description}` : ""}`,
         ],
       );
 
